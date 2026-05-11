@@ -14,3 +14,12 @@ export const addTag = (imageId: number, tagName: string): Promise<Tag> =>
 
 export const removeTag = (imageId: number, tagId: number): Promise<void> =>
   invoke("remove_tag", { imageId, tagId });
+
+export const renameTag = (tagId: number, newName: string): Promise<Tag> =>
+  invoke("rename_tag", { tagId, newName });
+
+export const deleteTag = (tagId: number): Promise<void> =>
+  invoke("delete_tag", { tagId });
+
+export const removeImage = (imageId: number): Promise<void> =>
+  invoke("remove_image", { imageId });

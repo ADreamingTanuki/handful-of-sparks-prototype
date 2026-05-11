@@ -238,6 +238,37 @@ fn remove_tag(image_id: i64, tag_id: i64, db: State<'_, DbState>) -> Result<(), 
     Ok(())
 }
 
+#[tauri::command]
+fn rename_tag(tag_id: i64, new_name: String, db: State<'_, DbState>) -> Result<Tag, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let rows = conn
+        .execute(
+            "UPDATE tags SET name = ?1 WHERE id = ?2",
+            params![new_name, tag_id],
+        )
+        .map_err(|e| e.to_string())?;
+    if rows == 0 {
+        return Err("Tag not found".into());
+    }
+    Ok(Tag { id: tag_id, name: new_name })
+}
+
+#[tauri::command]
+fn delete_tag(tag_id: i64, db: State<'_, DbState>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn remove_image(image_id: i64, db: State<'_, DbState>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM images WHERE id = ?1", params![image_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -257,6 +288,9 @@ pub fn run() {
             get_tags,
             add_tag,
             remove_tag,
+            rename_tag,
+            delete_tag,
+            remove_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

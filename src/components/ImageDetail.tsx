@@ -6,9 +6,10 @@ import { addTag, removeTag } from "../lib/api";
 interface Props {
   image: Image;
   onTagsChanged: (imageId: number, tags: Tag[]) => void;
+  onRemove: (imageId: number) => Promise<void>;
 }
 
-export default function ImageDetail({ image, onTagsChanged }: Props) {
+export default function ImageDetail({ image, onTagsChanged, onRemove }: Props) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +101,16 @@ export default function ImageDetail({ image, onTagsChanged }: Props) {
             Add
           </button>
         </form>
+
+        <div className="mt-auto pt-2 border-t border-neutral-800">
+          <button
+            onClick={() => onRemove(image.id)}
+            disabled={busy}
+            className="w-full py-1.5 text-xs text-neutral-500 hover:text-red-400 transition-colors disabled:opacity-40"
+          >
+            Remove from board
+          </button>
+        </div>
       </div>
     </aside>
   );

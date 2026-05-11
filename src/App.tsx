@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { Image, Tag } from "./lib/types";
-import { importImage, getImages, getTags } from "./lib/api";
+import { importImage, getImages, getTags, renameTag, deleteTag, removeImage } from "./lib/api";
 import TagSidebar from "./components/TagSidebar";
 import ImageGrid from "./components/ImageGrid";
 import ImageDetail from "./components/ImageDetail";
@@ -97,12 +97,43 @@ export default function App() {
     refreshTags();
   }
 
+  async function handleRenameTag(tagId: number, newName: string) {
+    const updated = await renameTag(tagId, newName);
+    setAllTags((prev) => prev.map((t) => (t.id === tagId ? updated : t)));
+    setImages((prev) =>
+      prev.map((img) => ({
+        ...img,
+        tags: img.tags.map((t) => (t.id === tagId ? updated : t)),
+      }))
+    );
+  }
+
+  async function handleDeleteTag(tagId: number) {
+    await deleteTag(tagId);
+    setAllTags((prev) => prev.filter((t) => t.id !== tagId));
+    setActiveTagIds((prev) => prev.filter((id) => id !== tagId));
+    setImages((prev) =>
+      prev.map((img) => ({
+        ...img,
+        tags: img.tags.filter((t) => t.id !== tagId),
+      }))
+    );
+  }
+
+  async function handleRemoveImage(imageId: number) {
+    await removeImage(imageId);
+    setImages((prev) => prev.filter((img) => img.id !== imageId));
+    setSelectedId(null);
+  }
+
   return (
     <div className="flex h-screen bg-neutral-950 text-neutral-200 overflow-hidden select-none">
       <TagSidebar
         tags={allTags}
         activeTagIds={activeTagIds}
         onToggle={toggleTag}
+        onRename={handleRenameTag}
+        onDelete={handleDeleteTag}
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative">
@@ -134,7 +165,11 @@ export default function App() {
       </main>
 
       {selectedImage && (
-        <ImageDetail image={selectedImage} onTagsChanged={handleTagsChanged} />
+        <ImageDetail
+          image={selectedImage}
+          onTagsChanged={handleTagsChanged}
+          onRemove={handleRemoveImage}
+        />
       )}
     </div>
   );
