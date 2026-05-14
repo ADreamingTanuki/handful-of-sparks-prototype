@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Image, Tag } from "../lib/types";
-import { addTag, removeTag } from "../lib/api";
+import { addTag, removeTag, deleteImage } from "../lib/api";
 
 interface Props {
   image: Image;
   onTagsChanged: (imageId: number, tags: Tag[]) => void;
+  onDeleted: (imageId: number) => void;
 }
 
-export default function ImageDetail({ image, onTagsChanged }: Props) {
+export default function ImageDetail({ image, onTagsChanged, onDeleted }: Props) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +46,17 @@ export default function ImageDetail({ image, onTagsChanged }: Props) {
         image.id,
         image.tags.filter((t) => t.id !== tag.id)
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await deleteImage(image.id);
+      onDeleted(image.id);
     } finally {
       setBusy(false);
     }
@@ -100,6 +112,16 @@ export default function ImageDetail({ image, onTagsChanged }: Props) {
             Add
           </button>
         </form>
+      </div>
+
+      <div className="px-4 py-3 border-t border-neutral-800 shrink-0">
+        <button
+          onClick={handleDelete}
+          disabled={busy}
+          className="w-full text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10 py-1.5 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Remove image
+        </button>
       </div>
     </aside>
   );

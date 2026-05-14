@@ -97,12 +97,19 @@ export default function App() {
     refreshTags();
   }
 
+  function handleImageDeleted(imageId: number) {
+    setImages((prev) => prev.filter((img) => img.id !== imageId));
+    setSelectedId(null);
+    refreshTags();
+  }
+
   return (
     <div className="flex h-screen bg-neutral-950 text-neutral-200 overflow-hidden select-none">
       <TagSidebar
         tags={allTags}
         activeTagIds={activeTagIds}
         onToggle={toggleTag}
+        onTagsChanged={() => { refreshTags(); refreshImages(activeTagIds); }}
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative">
@@ -134,7 +141,11 @@ export default function App() {
       </main>
 
       {selectedImage && (
-        <ImageDetail image={selectedImage} onTagsChanged={handleTagsChanged} />
+        <ImageDetail
+          image={selectedImage}
+          onTagsChanged={handleTagsChanged}
+          onDeleted={handleImageDeleted}
+        />
       )}
     </div>
   );

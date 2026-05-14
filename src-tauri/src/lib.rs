@@ -238,6 +238,47 @@ fn remove_tag(image_id: i64, tag_id: i64, db: State<'_, DbState>) -> Result<(), 
     Ok(())
 }
 
+#[tauri::command]
+fn rename_tag(tag_id: i64, new_name: String, db: State<'_, DbState>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE tags SET name = ?1 WHERE id = ?2",
+        params![new_name, tag_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_tag(tag_id: i64, db: State<'_, DbState>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    // image_tags rows cascade-delete via FK; remove the tag itself
+    conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_image(image_id: i64, db: State<'_, DbState>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let (filepath, thumbnail_path): (String, String) = conn
+        .query_row(
+            "SELECT filepath, thumbnail_path FROM images WHERE id = ?1",
+            params![image_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    conn.execute("DELETE FROM images WHERE id = ?1", params![image_id])
+        .map_err(|e| e.to_string())?;
+
+    // Best-effort file deletion — ignore errors if files are already gone
+    let _ = fs::remove_file(&filepath);
+    let _ = fs::remove_file(&thumbnail_path);
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -257,6 +298,9 @@ pub fn run() {
             get_tags,
             add_tag,
             remove_tag,
+            rename_tag,
+            delete_tag,
+            delete_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
